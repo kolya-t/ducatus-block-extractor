@@ -2,19 +2,20 @@ const blockstore = require('bcoin/lib/blockstore');
 const axios = require('axios');
 const ProgressBar = require('progress');
 const program = require('commander');
+const resolve = require('path').resolve;
 
 const http = axios.create({
     baseURL: 'http://insight.ducatus.io/insight-lite-api/'
 });
 
 program
-    .option('-d --directory', 'blocks directory')
+    .option('-d --directory <dir>', 'blocks directory')
     .option('-f --from-block <num>', 'from block (inclusive)')
     .option('-t --to-block <num>', 'end block (inclusive)');
 
 program.parse(process.argv);
 
-const directory = program.directory || __dirname;
+const directory = resolve(program.directory) || __dirname;
 const fromBlock = program.fromBlock || 0;
 const toBlock = program.toBlock || 866376;
 const count = toBlock - fromBlock + 1;
