@@ -1,0 +1,21 @@
+{
+  "name": "ducatus-block-extractor",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kolya-t/ducatus-block-extractor.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kolya-t/ducatus-block-extractor/issues"
+  },
+  "homepage": "https://github.com/kolya-t/ducatus-block-extractor#readme",
+  "dependencies": {
+    "axios": "^0.19.0",
+    "bcoin": "github:kolya-t/bcoin#ab34d2d"
+  }
+}
