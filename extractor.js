@@ -34,9 +34,9 @@ const bar = new ProgressBar('[:bar] :rate/bps :percent :etas', { total: count })
     });
 
     await store.ensure();
-    await store.open();
 
     for (let height = fromBlock; height <= toBlock; height++) {
+        await store.open();
         const { data: { blockHash } } = await http.get(`block-index/${height}`);
         const { data: { rawblock } } = await http.get(`rawblock/${blockHash}`);
 
@@ -45,7 +45,8 @@ const bar = new ProgressBar('[:bar] :rate/bps :percent :etas', { total: count })
 
         await store.write(bufferedHash, bufferedData);
         bar.tick(1);
+
+        await store.close();
     }
 
-    await store.close();
 })();
