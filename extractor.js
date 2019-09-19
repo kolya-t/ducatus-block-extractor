@@ -15,7 +15,7 @@ program
 
 program.parse(process.argv);
 
-const directory = resolve(program.directory) || __dirname;
+const directory = program.directory ? resolve(program.directory) : __dirname;
 const fromBlock = program.fromBlock || 0;
 const toBlock = program.toBlock || 866376;
 const count = toBlock - fromBlock + 1;
