@@ -8,7 +8,7 @@ const http = axios.create({
 (async () => {
     const store = blockstore.create({
         network: 'main',
-        prefix: '/home/kolya-t/Projects/bcoin-test'
+        prefix: __dirname
     });
 
     await store.ensure();
