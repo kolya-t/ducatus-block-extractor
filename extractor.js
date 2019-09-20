@@ -20,6 +20,7 @@ const directory = resolve(program.directory) || __dirname;
 const fromBlock = program.fromBlock || 0;
 const toBlock = program.toBlock || 866376;
 const count = toBlock - fromBlock + 1;
+const secondsDefault = 15;
 
 console.info(`Directory:   ${directory}`);
 console.info(`Start block: ${fromBlock}`);
@@ -68,9 +69,11 @@ const bar = new ProgressBar('[:bar] :rate/bps :percent :etas', {total: count});
                 blockHash = (await http.get(`block-index/${height}`)).data.blockHash;
                 rawblock = (await http.get(`rawblock/${blockHash}`)).data.rawblock;
             } catch (e) {
-                let seconds = 15;
                 if (e.response != null && e.response.status === 429) {
                     seconds = Number(e.response.headers['Retry-After']);
+                    if (seconds.isNull() || seconds.isNaN()) {
+                        seconds = secondsDefault;
+                    }
                 }
                 console.log(e);
                 console.log("Waiting for " + seconds + " seconds..");
