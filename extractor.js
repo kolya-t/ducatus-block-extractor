@@ -20,7 +20,7 @@ program.parse(process.argv);
 
 const logFile = 'extractor.log';
 const lastBLockFile = 'lastBlock';
-const retryInterval = program.interval || 10 * 60; // default is 10 minutes
+const defaultRetryInterval = program.interval || 60; // default is minute
 const directory = program.directory ? resolve(program.directory) : __dirname;
 let fromBlock = program.fromBlock || 0;
 if (fs.existsSync(lastBLockFile)) {
@@ -31,7 +31,7 @@ const toBlock = program.toBlock || 866376;
 const count = toBlock - fromBlock + 1;
 
 console.info(`Directory:        ${directory}`);
-console.info(`Retry interval:   ${retryInterval}s`);
+console.info(`Retry interval:   ${defaultRetryInterval}s`);
 console.info(`Start block:      ${fromBlock}`);
 console.info(`End block:        ${toBlock}`);
 console.info(`\nExtracting ${count} blocks:`);
@@ -46,6 +46,7 @@ const bar = new ProgressBar('[:bar] :rate b/ps :percent :etas', { total: count }
 
     await store.ensure();
 
+    let retryInterval = defaultRetryInterval;
     let height = fromBlock;
     while (height <= toBlock) {
         try {
@@ -63,15 +64,8 @@ const bar = new ProgressBar('[:bar] :rate b/ps :percent :etas', { total: count }
             height++;
         } catch (e) {
             log(e);
-            const { response: { headers } } = e;
-            let waitSeconds;
-            if (headers['Retry-After']) {
-                waitSeconds = Number(headers['Retry-After']);
-            } else {
-                waitSeconds = retryInterval;
-            }
-
-            await sleep(waitSeconds * 1000);
+            await sleep(retryInterval * 1000);
+            retryInterval *= 2;
         } finally {
             await store.close();
         }
