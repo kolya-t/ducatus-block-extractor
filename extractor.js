@@ -3,6 +3,8 @@ const axios = require('axios');
 const ProgressBar = require('progress');
 const program = require('commander');
 const resolve = require('path').resolve;
+// const fs = require('fs');
+const fs = require('fs-extra')
 
 const http = axios.create({
     baseURL: 'http://insight.ducatus.io/insight-lite-api/'
@@ -15,8 +17,14 @@ program
 
 program.parse(process.argv);
 
+const logFile = 'extractor.log';
+const lastBLockFile = 'lastBlock';
 const directory = program.directory ? resolve(program.directory) : __dirname;
-const fromBlock = program.fromBlock || 0;
+let fromBlock = program.fromBlock || 0;
+if (fs.existsSync(lastBLockFile)) {
+    fromBlock = Number(fs.readFileSync(lastBLockFile)) + 1;
+}
+
 const toBlock = program.toBlock || 866376;
 const count = toBlock - fromBlock + 1;
 
@@ -25,7 +33,7 @@ console.info(`Start block: ${fromBlock}`);
 console.info(`End block:   ${toBlock}`);
 console.info(`\nExtracting ${count} blocks:`);
 
-const bar = new ProgressBar('[:bar] :rate/bps :percent :etas', { total: count });
+const bar = new ProgressBar('[:bar] :rate b/ps :percent :etas', { total: count });
 
 (async () => {
     const store = blockstore.create({
@@ -34,6 +42,8 @@ const bar = new ProgressBar('[:bar] :rate/bps :percent :etas', { total: count })
     });
 
     await store.ensure();
+    fs.ensureFileSync(logFile);
+    fs.ensureFileSync(lastBLockFile);
 
     for (let height = fromBlock; height <= toBlock; height++) {
         await store.open();
@@ -44,6 +54,8 @@ const bar = new ProgressBar('[:bar] :rate/bps :percent :etas', { total: count })
         const bufferedData = Buffer.from(rawblock, 'hex');
 
         await store.write(bufferedHash, bufferedData);
+        fs.appendFileSync(logFile, `${new Date()}: wrote block ${height}\n`);
+        fs.writeFileSync(lastBLockFile, height);
         bar.tick(1);
 
         await store.close();

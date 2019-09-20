@@ -18,6 +18,7 @@
     "axios": "^0.19.0",
     "bcoin": "github:kolya-t/bcoin#ab34d2d",
     "commander": "^3.0.1",
+    "fs-extra": "^8.1.0",
     "progress": "^2.0.3"
   }
 }
