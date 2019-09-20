@@ -42,7 +42,6 @@ const bar = new ProgressBar('[:bar] :rate b/ps :percent :etas', { total: count }
     });
 
     await store.ensure();
-    fs.ensureFileSync(logFile);
 
     let height = fromBlock;
     while (height <= toBlock) {
@@ -55,12 +54,13 @@ const bar = new ProgressBar('[:bar] :rate b/ps :percent :etas', { total: count }
             const bufferedData = Buffer.from(rawblock, 'hex');
 
             await store.write(bufferedHash, bufferedData);
-            fs.appendFileSync(logFile, `${new Date()}: wrote block ${height}\n`);
-            fs.ensureFileSync(lastBLockFile);
-            fs.writeFileSync(lastBLockFile, height);
+            log(`wrote block ${height}`);
+            writeLastBlock(height);
             bar.tick(1);
             height++;
-        } catch ({ response: { headers } }) {
+        } catch (e) {
+            log(e);
+            const { response: { headers } } = e;
             let waitSeconds;
             if (headers['Retry-After']) {
                 waitSeconds = Number(headers['Retry-After']);
@@ -74,6 +74,16 @@ const bar = new ProgressBar('[:bar] :rate b/ps :percent :etas', { total: count }
         }
     }
 })();
+
+function log(message) {
+    fs.ensureFileSync(logFile);
+    fs.appendFileSync(logFile, `${new Date()}: ${message}\n`);
+}
+
+function writeLastBlock(newLastBlock) {
+    fs.ensureFileSync(lastBLockFile);
+    fs.writeFileSync(lastBLockFile, newLastBlock);
+}
 
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
