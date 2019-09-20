@@ -56,7 +56,7 @@ const bar = new ProgressBar('[:bar] :rate/bps :percent :etas', {total: count});
     async function saveBlocks(fromBlock) {
         let blockHash;
         let rawblock;
-        let response;
+        // let response;
 
         for (let height = fromBlock; height <= toBlock; height++) {
             parameters.fromBlock = height;
@@ -64,13 +64,13 @@ const bar = new ProgressBar('[:bar] :rate/bps :percent :etas', {total: count});
 
             await store.open();
             try {
-                response = await axios.get('http://insight.ducatus.io/insight-lite-api/block-index/' + height);
+                // response = await axios.get('http://insight.ducatus.io/insight-lite-api/block-index/' + height);
                 blockHash = (await http.get(`block-index/${height}`)).data.blockHash;
                 rawblock = (await http.get(`rawblock/${blockHash}`)).data.rawblock;
             } catch (e) {
                 let seconds = 15;
-                if (response != null && response.status === 429) {
-                    seconds = Number(response.headers['Retry-After']);
+                if (e.response != null && e.response.status === 429) {
+                    seconds = Number(e.response.headers['Retry-After']);
                 }
                 console.log(e);
                 console.log("Waiting for " + seconds + " seconds..");
