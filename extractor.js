@@ -65,7 +65,7 @@ const bar = new ProgressBar('[:bar] :rate b/ps :percent :etas', { total: count }
             if (headers['Retry-After']) {
                 waitSeconds = Number(headers['Retry-After']);
             } else {
-                waitSeconds = 60 * 60; // 1h
+                waitSeconds = 60; // 1 minute
             }
 
             await sleep(waitSeconds * 1000);
