@@ -3,6 +3,7 @@ const axios = require('axios');
 const ProgressBar = require('progress');
 const program = require('commander');
 const resolve = require('path').resolve;
+const fs = require('fs');
 
 const http = axios.create({
     baseURL: 'http://insight.ducatus.io/insight-lite-api/'
@@ -25,7 +26,7 @@ console.info(`Start block: ${fromBlock}`);
 console.info(`End block:   ${toBlock}`);
 console.info(`\nExtracting ${count} blocks:`);
 
-const bar = new ProgressBar('[:bar] :rate/bps :percent :etas', { total: count });
+const bar = new ProgressBar('[:bar] :rate/bps :percent :etas', {total: count});
 
 (async () => {
     const store = blockstore.create({
@@ -33,20 +34,68 @@ const bar = new ProgressBar('[:bar] :rate/bps :percent :etas', { total: count })
         prefix: directory
     });
 
+    let parameters = {
+        directory: directory,
+        fromBlock: fromBlock,
+        toBlock: toBlock
+    };
+
     await store.ensure();
+    saveBlocks(fromBlock);
 
-    for (let height = fromBlock; height <= toBlock; height++) {
-        await store.open();
-        const { data: { blockHash } } = await http.get(`block-index/${height}`);
-        const { data: { rawblock } } = await http.get(`rawblock/${blockHash}`);
 
-        const bufferedHash = Buffer.from(blockHash, 'hex');
-        const bufferedData = Buffer.from(rawblock, 'hex');
+    function saveToDisc(parameters) {
+        fs.writeFile(directory + '/height.json', JSON.stringify(parameters), (err) => {
+            if (err) {
+                console.error(err);
+                return;
+            }
+        });
+    }
 
-        await store.write(bufferedHash, bufferedData);
-        bar.tick(1);
+    async function saveBlocks(fromBlock) {
+        let blockHash;
+        let rawblock;
+        let response;
 
-        await store.close();
+        for (let height = fromBlock; height <= toBlock; height++) {
+            parameters.fromBlock = height;
+            saveToDisc(parameters);
+
+            await store.open();
+            try {
+                response = await axios.get('http://insight.ducatus.io/insight-lite-api/block-index/' + height);
+                blockHash = (await http.get(`block-index/${height}`)).data.blockHash;
+                rawblock = (await http.get(`rawblock/${blockHash}`)).data.rawblock;
+            } catch (e) {
+                crash = 20;
+                let seconds = 15;
+                if (response != null && response.status === 429) {
+                    seconds = Number(response.headers['Retry-After']);
+                }
+                console.log(e);
+                console.log("Waiting for " + seconds + " seconds..");
+                await store.close();
+                await sleep(1000 * seconds);
+                break;
+            }
+
+            const bufferedHash = Buffer.from(blockHash, 'hex');
+            const bufferedData = Buffer.from(rawblock, 'hex');
+
+            await store.write(bufferedHash, bufferedData);
+            bar.tick(1);
+
+            await store.close();
+        }
+
+        if (parameters.fromBlock !== parameters.toBlock) {
+            await saveBlocks(parameters.fromBlock);
+        }
+    }
+
+    function sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
     }
 
 })();
