@@ -5,7 +5,7 @@ const program = require('commander');
 const resolve = require('path').resolve;
 
 const http = axios.create({
-    baseURL: 'http://insight.ducatus.io/insight-lite-api/'
+    baseURL: 'http://localhost:3001/insight-lite-api/'
 });
 
 program
