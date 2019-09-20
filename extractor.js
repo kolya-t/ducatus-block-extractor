@@ -55,11 +55,14 @@ const bar = new ProgressBar('[:bar] :rate b/ps :percent :etas', { total: count }
             blockHash = (await http.get(`block-index/${height}`)).data.blockHash;
             rawblock = (await http.get(`rawblock/${blockHash}`)).data.rawblock;
         } catch ({ response: { headers } }) {
+            let waitSeconds;
             if (headers['Retry-After']) {
-                const waitSeconds = Number(headers['Retry-After']);
-                await sleep(waitSeconds);
+                waitSeconds = Number(headers['Retry-After']);
+            } else {
+                waitSeconds = 60 * 60; // 1h
             }
 
+            await sleep(waitSeconds * 1000);
             continue;
         }
 
