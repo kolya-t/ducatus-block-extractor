@@ -71,7 +71,7 @@ const bar = new ProgressBar('[:bar] :rate/bps :percent :etas', {total: count});
             } catch (e) {
                 if (e.response != null && e.response.status === 429) {
                     seconds = Number(e.response.headers['Retry-After']);
-                    if (seconds.isNull() || seconds.isNaN()) {
+                    if (seconds == null || seconds.isNaN()) {
                         seconds = secondsDefault;
                     }
                 }
