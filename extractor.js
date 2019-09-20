@@ -4,7 +4,7 @@ const ProgressBar = require('progress');
 const program = require('commander');
 const resolve = require('path').resolve;
 // const fs = require('fs');
-const fs = require('fs-extra')
+const fs = require('fs-extra');
 
 const http = axios.create({
     baseURL: 'http://insight.ducatus.io/insight-lite-api/'
@@ -46,14 +46,20 @@ const bar = new ProgressBar('[:bar] :rate b/ps :percent :etas', { total: count }
 
     let height = fromBlock;
     while (height <= toBlock) {
-        await store.open();
-
-        let blockHash;
-        let rawblock;
-
         try {
-            blockHash = (await http.get(`block-index/${height}`)).data.blockHash;
-            rawblock = (await http.get(`rawblock/${blockHash}`)).data.rawblock;
+            await store.open();
+            const blockHash = (await http.get(`block-index/${height}`)).data.blockHash;
+            const rawblock = (await http.get(`rawblock/${blockHash}`)).data.rawblock;
+
+            const bufferedHash = Buffer.from(blockHash, 'hex');
+            const bufferedData = Buffer.from(rawblock, 'hex');
+
+            await store.write(bufferedHash, bufferedData);
+            fs.appendFileSync(logFile, `${new Date()}: wrote block ${height}\n`);
+            fs.ensureFileSync(lastBLockFile);
+            fs.writeFileSync(lastBLockFile, height);
+            bar.tick(1);
+            height++;
         } catch ({ response: { headers } }) {
             let waitSeconds;
             if (headers['Retry-After']) {
@@ -63,21 +69,9 @@ const bar = new ProgressBar('[:bar] :rate b/ps :percent :etas', { total: count }
             }
 
             await sleep(waitSeconds * 1000);
-            continue;
+        } finally {
+            await store.close();
         }
-
-        const bufferedHash = Buffer.from(blockHash, 'hex');
-        const bufferedData = Buffer.from(rawblock, 'hex');
-
-        await store.write(bufferedHash, bufferedData);
-        fs.appendFileSync(logFile, `${new Date()}: wrote block ${height}\n`);
-        fs.ensureFileSync(lastBLockFile);
-        fs.writeFileSync(lastBLockFile, height);
-        bar.tick(1);
-
-        await store.close();
-
-        height++;
     }
 })();
 
