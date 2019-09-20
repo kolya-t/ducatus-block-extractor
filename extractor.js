@@ -43,22 +43,41 @@ const bar = new ProgressBar('[:bar] :rate b/ps :percent :etas', { total: count }
 
     await store.ensure();
     fs.ensureFileSync(logFile);
-    fs.ensureFileSync(lastBLockFile);
 
-    for (let height = fromBlock; height <= toBlock; height++) {
+    let height = fromBlock;
+    while (height <= toBlock) {
         await store.open();
-        const { data: { blockHash } } = await http.get(`block-index/${height}`);
-        const { data: { rawblock } } = await http.get(`rawblock/${blockHash}`);
+
+        let blockHash;
+        let rawblock;
+
+        try {
+            blockHash = (await http.get(`block-index/${height}`)).data.blockHash;
+            rawblock = (await http.get(`rawblock/${blockHash}`)).data.rawblock;
+        } catch ({ response: { headers } }) {
+            if (headers['Retry-After']) {
+                const waitSeconds = Number(headers['Retry-After']);
+                await sleep(waitSeconds);
+            }
+
+            continue;
+        }
 
         const bufferedHash = Buffer.from(blockHash, 'hex');
         const bufferedData = Buffer.from(rawblock, 'hex');
 
         await store.write(bufferedHash, bufferedData);
         fs.appendFileSync(logFile, `${new Date()}: wrote block ${height}\n`);
+        fs.ensureFileSync(lastBLockFile);
         fs.writeFileSync(lastBLockFile, height);
         bar.tick(1);
 
         await store.close();
-    }
 
+        height++;
+    }
 })();
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
