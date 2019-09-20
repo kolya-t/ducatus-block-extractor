@@ -13,12 +13,14 @@ const http = axios.create({
 program
     .option('-d --directory <dir>', 'blocks directory')
     .option('-f --from-block <num>', 'from block (inclusive)')
-    .option('-t --to-block <num>', 'end block (inclusive)');
+    .option('-t --to-block <num>', 'end block (inclusive)')
+    .option('-i --interval <num>', 'retry interval in seconds (default is 10 minutes)');
 
 program.parse(process.argv);
 
 const logFile = 'extractor.log';
 const lastBLockFile = 'lastBlock';
+const retryInterval = program.interval || 10 * 60; // default is 10 minutes
 const directory = program.directory ? resolve(program.directory) : __dirname;
 let fromBlock = program.fromBlock || 0;
 if (fs.existsSync(lastBLockFile)) {
@@ -28,9 +30,10 @@ if (fs.existsSync(lastBLockFile)) {
 const toBlock = program.toBlock || 866376;
 const count = toBlock - fromBlock + 1;
 
-console.info(`Directory:   ${directory}`);
-console.info(`Start block: ${fromBlock}`);
-console.info(`End block:   ${toBlock}`);
+console.info(`Directory:        ${directory}`);
+console.info(`Retry interval:   ${retryInterval}s`);
+console.info(`Start block:      ${fromBlock}`);
+console.info(`End block:        ${toBlock}`);
 console.info(`\nExtracting ${count} blocks:`);
 
 const bar = new ProgressBar('[:bar] :rate b/ps :percent :etas', { total: count });
@@ -65,7 +68,7 @@ const bar = new ProgressBar('[:bar] :rate b/ps :percent :etas', { total: count }
             if (headers['Retry-After']) {
                 waitSeconds = Number(headers['Retry-After']);
             } else {
-                waitSeconds = 60; // 1 minute
+                waitSeconds = retryInterval;
             }
 
             await sleep(waitSeconds * 1000);
