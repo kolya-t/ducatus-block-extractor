@@ -62,6 +62,7 @@ const bar = new ProgressBar('[:bar] :rate b/ps :percent :etas', { total: count }
             writeLastBlock(height);
             bar.tick(1);
             height++;
+            retryInterval = defaultRetryInterval;
         } catch (e) {
             log(e);
             await sleep(retryInterval * 1000);
